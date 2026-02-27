@@ -1,6 +1,6 @@
 # Itamae
 
-Crunchyroll history exporter.
+Crunchyroll watch history exporter.
 
 ## Install
 
