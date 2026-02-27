@@ -1,9 +1,12 @@
 import "./style/main.less";
 
+const HISTORY_PATH = "/history";
 const WATCH_HISTORY_URL_REGEX = /\/content\/v2\/[^/]+\/watch-history/;
 const watchHistoryEntries: unknown[] = [];
 
 const button = document.createElement("button");
+button.id = "itamae-save-btn";
+button.textContent = "Save List (0)";
 
 function updateButton() {
   button.textContent = `Save List (${watchHistoryEntries.length})`;
@@ -31,9 +34,6 @@ function updateButton() {
   } as typeof XMLHttpRequest.prototype.open;
 })(XMLHttpRequest.prototype.open);
 
-button.id = "itamae-save-btn";
-button.textContent = "Save List (0)";
-
 button.addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(watchHistoryEntries, null, 2)], {
     type: "application/json",
@@ -46,10 +46,35 @@ button.addEventListener("click", () => {
   URL.revokeObjectURL(a.href);
 });
 
-const waitForH1 = setInterval(() => {
+function isHistoryPage() {
+  return location.pathname === HISTORY_PATH;
+}
+
+function attachButton() {
   const h1 = document.querySelector("h1");
-  if (h1) {
-    clearInterval(waitForH1);
+  if (h1 && !h1.contains(button)) {
     h1.appendChild(button);
   }
-}, 200);
+}
+
+// Watch for SPA navigation and attach/detach button accordingly
+new MutationObserver(() => {
+  if (isHistoryPage()) {
+    attachButton();
+  } else {
+    watchHistoryEntries.length = 0;
+    updateButton();
+    button.remove();
+  }
+}).observe(document, { subtree: true, childList: true });
+
+// Initial attach if already on history page
+if (isHistoryPage()) {
+  const waitForH1 = setInterval(() => {
+    const h1 = document.querySelector("h1");
+    if (h1) {
+      clearInterval(waitForH1);
+      h1.appendChild(button);
+    }
+  }, 200);
+}

@@ -7,7 +7,7 @@ module.exports = {
   author: author,
   source: repository.url,
   description: " Crunchyroll history exporter. ",
-  match: ["https://www.crunchyroll.com/history"],
+  match: ["https://www.crunchyroll.com/*"],
   require: [],
   grant: "none",
   "run-at": "document-end",
