@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          Itamae
 // @namespace     http://ryn.cx/
-// @version       0.0.4
+// @version       0.0.5
 // @author        ryn.cx
 // @source        https://github.com/ryn-cx/itamae
 // @description    Crunchyroll history exporter.
@@ -29,7 +29,8 @@
 
 var ___CSS_LOADER_EXPORT___ = _node_modules_css_loader_dist_runtime_api_js__WEBPACK_IMPORTED_MODULE_1___default()((_node_modules_css_loader_dist_runtime_noSourceMaps_js__WEBPACK_IMPORTED_MODULE_0___default()));
 // Module
-___CSS_LOADER_EXPORT___.push([module.id, `#itamae-save-btn {
+___CSS_LOADER_EXPORT___.push([module.id, `#itamae-save-btn,
+#itamae-auto-btn {
   margin-left: 16px;
   padding: 6px 16px;
   background-color: #ff640a;
@@ -38,6 +39,24 @@ ___CSS_LOADER_EXPORT___.push([module.id, `#itamae-save-btn {
   border-radius: 5px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: bold;
+}
+#itamae-loading-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  cursor: pointer;
+}
+#itamae-loading-modal span {
+  color: #fff;
+  font-size: 24px;
   font-weight: bold;
 }
 `, ""]);
@@ -514,11 +533,58 @@ var update = injectStylesIntoStyleTag_default()(main/* default */.A, options);
 const HISTORY_PATH = "/history";
 const WATCH_HISTORY_URL_REGEX = /\/content\/v2\/[^/]+\/watch-history/;
 const watchHistoryEntries = [];
-const src_button = document.createElement("button");
-src_button.id = "itamae-save-btn";
-src_button.textContent = "Save List (0)";
-function updateButton() {
-    src_button.textContent = `Save List (${watchHistoryEntries.length})`;
+const saveButton = document.createElement("button");
+saveButton.id = "itamae-save-btn";
+saveButton.textContent = "Save History (0)";
+const loadButton = document.createElement("button");
+loadButton.id = "itamae-auto-btn";
+loadButton.textContent = "Load History";
+const loadingModal = document.createElement("div");
+loadingModal.id = "itamae-loading-modal";
+const loadingModalText = document.createElement("span");
+loadingModalText.textContent = "Loading...";
+loadingModal.appendChild(loadingModalText);
+loadingModal.addEventListener("click", () => stopAutoLoad());
+function updateSaveButton() {
+    saveButton.textContent = `Save History (${watchHistoryEntries.length})`;
+}
+function updateLoadingModal() {
+    loadingModalText.textContent = `Loading... (${watchHistoryEntries.length})`;
+}
+let autoLoading = false;
+let scrollTimer = null;
+function stopAutoLoad(completed = false) {
+    if (scrollTimer) {
+        clearTimeout(scrollTimer);
+        scrollTimer = null;
+    }
+    loadingModal.remove();
+    autoLoading = false;
+    if (completed) {
+        loadButton.remove();
+        window.scrollTo(0, 0);
+    }
+}
+function scrollLoop() {
+    if (!autoLoading)
+        return;
+    const countBefore = watchHistoryEntries.length;
+    window.scrollTo(0, document.body.scrollHeight);
+    scrollTimer = setTimeout(() => {
+        if (!autoLoading)
+            return;
+        if (watchHistoryEntries.length === countBefore) {
+            stopAutoLoad(true);
+        }
+        else {
+            scrollLoop();
+        }
+    }, 2000);
+}
+function startAutoLoad() {
+    autoLoading = true;
+    document.body.appendChild(loadingModal);
+    scrollLoop();
 }
 // Intercept XMLHttpRequest to capture watch-history API responses
 // Based on: https://stackoverflow.com/a/29293383
@@ -529,13 +595,19 @@ function updateButton() {
             if (this._url && WATCH_HISTORY_URL_REGEX.test(this._url)) {
                 const response = JSON.parse(this.responseText);
                 watchHistoryEntries.push(...response.data);
-                updateButton();
+                updateSaveButton();
+                updateLoadingModal();
             }
         });
         open.apply(this, args);
     };
 })(XMLHttpRequest.prototype.open);
-src_button.addEventListener("click", () => {
+loadButton.addEventListener("click", () => {
+    if (!autoLoading) {
+        startAutoLoad();
+    }
+});
+saveButton.addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(watchHistoryEntries, null, 2)], {
         type: "application/json",
     });
@@ -550,19 +622,21 @@ function isHistoryPage() {
 }
 function attachButton() {
     const h1 = document.querySelector("h1");
-    if (h1 && !h1.contains(src_button)) {
-        h1.appendChild(src_button);
+    if (h1 && !h1.contains(saveButton)) {
+        h1.appendChild(saveButton);
+        h1.appendChild(loadButton);
     }
 }
-// Watch for SPA navigation and attach/detach button accordingly
+// Watch for SPA navigation and attach/detach saveButton accordingly
 new MutationObserver(() => {
     if (isHistoryPage()) {
         attachButton();
     }
     else {
         watchHistoryEntries.length = 0;
-        updateButton();
-        src_button.remove();
+        updateSaveButton();
+        saveButton.remove();
+        loadButton.remove();
     }
 }).observe(document, { subtree: true, childList: true });
 // Initial attach if already on history page
@@ -571,7 +645,8 @@ if (isHistoryPage()) {
         const h1 = document.querySelector("h1");
         if (h1) {
             clearInterval(waitForH1);
-            h1.appendChild(src_button);
+            h1.appendChild(saveButton);
+            h1.appendChild(loadButton);
         }
     }, 200);
 }
