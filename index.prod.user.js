@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name          Itamae
 // @namespace     http://ryn.cx/
-// @version       0.0.3
+// @version       0.0.4
 // @author        ryn.cx
 // @source        https://github.com/ryn-cx/itamae
 // @description    Crunchyroll history exporter.
