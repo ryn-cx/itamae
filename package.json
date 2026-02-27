@@ -1,10 +1,9 @@
 {
-  "name": "webpack-userscript-template",
-  "description": "Build your UserScript with webpack",
+  "name": "itamae",
+  "description": " Crunchyroll history exporter. ",
   "version": "0.0.1",
   "author": {
-    "name": "Trim21",
-    "email": "trim21me@gmail.com"
+    "name": "ryn.cx"
   },
   "scripts": {
     "format": "prettier -w ./",
@@ -16,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/trim21/webpack-userscript-template"
+    "url": "https://github.com/ryn-cx/itamae"
   },
   "private": true,
   "dependencies": {
